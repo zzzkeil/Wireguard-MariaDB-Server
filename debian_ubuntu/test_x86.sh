@@ -115,17 +115,16 @@ wg pubkey < /etc/wireguard/keys/client2 > /etc/wireguard/keys/client2.pub
 ### -
 echo "[Interface]
 Address = 10.8.0.1/24
-Address = fd42:42:42:42::1/112
 ListenPort = $wg0port
 PrivateKey = SK01
 # client1
 [Peer]
 PublicKey = PK01
-AllowedIPs = 10.8.0.11/32, fd42:42:42:42::11/128
+AllowedIPs = 10.8.0.11/32
 # client2
 [Peer]
 PublicKey = PK02
-AllowedIPs = 10.8.0.12/32, fd42:42:42:42::12/128
+AllowedIPs = 10.8.0.12/32
 
 " > /etc/wireguard/wg0.conf
 sed -i "s@SK01@$(cat /etc/wireguard/keys/server0)@" /etc/wireguard/wg0.conf
@@ -136,13 +135,11 @@ chmod 600 /etc/wireguard/wg0.conf
 ### -
 echo "[Interface]
 Address = 10.8.0.11/32
-Address = fd42:42:42:42::11/128
 PrivateKey = CK01
-DNS = 10.8.0.1, fd42:42:42:42::1
 [Peer]
 Endpoint = IP01:$wg0port
 PublicKey = SK01
-AllowedIPs = 0.0.0.0/0, ::/0
+AllowedIPs = 10.8.0.1/32
 " > /etc/wireguard/client1.conf
 sed -i "s@CK01@$(cat /etc/wireguard/keys/client1)@" /etc/wireguard/client1.conf
 sed -i "s@SK01@$(cat /etc/wireguard/keys/server0.pub)@" /etc/wireguard/client1.conf
@@ -151,13 +148,11 @@ chmod 600 /etc/wireguard/client1.conf
 
 echo "[Interface]
 Address = 10.8.0.12/32
-Address = fd42:42:42:42::12/128
 PrivateKey = CK02
-DNS = 10.8.0.1, fd42:42:42:42::1
 [Peer]
 Endpoint = IP01:$wg0port
 PublicKey = SK01
-AllowedIPs = 0.0.0.0/0, ::/0
+AllowedIPs = 10.8.0.1/32
 " > /etc/wireguard/client2.conf
 sed -i "s@CK02@$(cat /etc/wireguard/keys/client2)@" /etc/wireguard/client2.conf
 sed -i "s@SK01@$(cat /etc/wireguard/keys/server0.pub)@" /etc/wireguard/client2.conf
