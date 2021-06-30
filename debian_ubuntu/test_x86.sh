@@ -86,25 +86,12 @@ apt update && apt upgrade -y && apt autoremove -y
 apt install qrencode python curl linux-headers-$(uname -r) -y 
 apt install wireguard-dkms wireguard-tools -y
 #
-### setup ufw and sysctl
-inet=$(ip route show default | awk '/default/ {print $5}')
+### setup ufw 
 ufw allow $wg0port/udp
-cp /etc/default/ufw /root/script_backupfiles/ufw.orig
-cp /etc/ufw/before.rules /root/script_backupfiles/before.rules.orig
-cp /etc/ufw/before6.rules /root/script_backupfiles/before6.rules.orig
-sed -i 's/DEFAULT_FORWARD_POLICY="DROP"/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
-sed -i "1i# START WIREGUARD RULES\n# NAT table rules\n*nat\n:POSTROUTING ACCEPT [0:0]\n# Allow traffic from WIREGUARD client \n-A POSTROUTING -s 10.8.0.0/24 -o $inet -j MASQUERADE\nCOMMIT\n# END WIREGUARD RULES\n" /etc/ufw/before.rules
-sed -i '/# End required lines/a \\n-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT\n-A INPUT -p udp -m udp --dport 14443 -m conntrack --ctstate NEW -j ACCEPT\n-A INPUT -s 10.8.0.0/24 -p tcp -m tcp --dport 53 -m conntrack --ctstate NEW -j ACCEPT\n-A INPUT -s 10.8.0.0/24 -p udp -m udp --dport 53 -m conntrack --ctstate NEW -j ACCEPT\n-A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT\n-A FORWARD -i wg0 -o wg0 -m conntrack --ctstate NEW -j ACCEPT' /etc/ufw/before.rules
-sed -i '/-A ufw-before-input -p icmp --icmp-type echo-request -j ACCEPT/a \\n# allow outbound icmp\n-A ufw-before-output -p icmp -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT\n-A ufw-before-output -p icmp -m state --state ESTABLISHED,RELATED -j ACCEPT\n' /etc/ufw/before.rules
-sed -i "1i# START WIREGUARD RULES\n# NAT table rules\n*nat\n:POSTROUTING ACCEPT [0:0]\n# Allow traffic from WIREGUARD client \n\n-A POSTROUTING -s fd42:42:42:42::/112 -o $inet -j MASQUERADE\nCOMMIT\n# END WIREGUARD RULES\n" /etc/ufw/before6.rules
-sed -i '/# End required lines/a \\n-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT\n-A INPUT -p udp -m udp --dport 14443 -m conntrack --ctstate NEW -j ACCEPT\n-A INPUT -s fd42:42:42:42::1/64 -p tcp -m tcp --dport 53 -m conntrack --ctstate NEW -j ACCEPT\n-A INPUT -s fd42:42:42:42::1/64 -p udp -m udp --dport 53 -m conntrack --ctstate NEW -j ACCEPT\n-A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT\n-A FORWARD -i wg0 -o wg0 -m conntrack --ctstate NEW -j ACCEPT' /etc/ufw/before6.rules
-cp /etc/sysctl.conf /root/script_backupfiles/sysctl.conf.orig
-sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g' /etc/sysctl.conf
-sed -i 's/#net.ipv6.conf.all.forwarding=1/net.ipv6.conf.all.forwarding=1/g' /etc/sysctl.conf
-cp /etc/ufw/sysctl.conf /root/script_backupfiles/sysctl.conf.ufw.orig
-sed -i 's@#net/ipv4/ip_forward=1@net/ipv4/ip_forward=1@g' /etc/ufw/sysctl.conf
-sed -i 's@#net/ipv6/conf/default/forwarding=1@net/ipv6/conf/default/forwarding=1@g' /etc/ufw/sysctl.conf
-sed -i 's@#net/ipv6/conf/all/forwarding=1@net/ipv6/conf/all/forwarding=1@g' /etc/ufw/sysctl.conf
+ufw allow in on wg0 from 10.0.0.11 to any port 3306 proto tcp
+ufw allow in on wg0 from 10.0.0.12 to any port 3306 proto tcp
+
+
 #
 ### setup wireguard keys and configs
 mkdir /etc/wireguard/keys
@@ -125,21 +112,6 @@ chmod 600 /etc/wireguard/keys/client2
 wg genkey > /etc/wireguard/keys/client2
 wg pubkey < /etc/wireguard/keys/client2 > /etc/wireguard/keys/client2.pub
 
-touch /etc/wireguard/keys/client3
-chmod 600 /etc/wireguard/keys/client3
-wg genkey > /etc/wireguard/keys/client3
-wg pubkey < /etc/wireguard/keys/client3 > /etc/wireguard/keys/client3.pub
-
-touch /etc/wireguard/keys/client4
-chmod 600 /etc/wireguard/keys/client4
-wg genkey > /etc/wireguard/keys/client4
-wg pubkey < /etc/wireguard/keys/client4 > /etc/wireguard/keys/client4.pub
-
-touch /etc/wireguard/keys/client5
-chmod 600 /etc/wireguard/keys/client5
-wg genkey > /etc/wireguard/keys/client5
-wg pubkey < /etc/wireguard/keys/client5 > /etc/wireguard/keys/client5.pub
-
 ### -
 echo "[Interface]
 Address = 10.8.0.1/24
@@ -154,26 +126,11 @@ AllowedIPs = 10.8.0.11/32, fd42:42:42:42::11/128
 [Peer]
 PublicKey = PK02
 AllowedIPs = 10.8.0.12/32, fd42:42:42:42::12/128
-# client3
-[Peer]
-PublicKey = PK03
-AllowedIPs = 10.8.0.13/32, fd42:42:42:42::13/128
-# client4
-[Peer]
-PublicKey = PK04
-AllowedIPs = 10.8.0.14/32, fd42:42:42:42::14/128
-# client5
-[Peer]
-PublicKey = PK05
-AllowedIPs = 10.8.0.15/32, fd42:42:42:42::15/128
-# -end of default clients
+
 " > /etc/wireguard/wg0.conf
 sed -i "s@SK01@$(cat /etc/wireguard/keys/server0)@" /etc/wireguard/wg0.conf
 sed -i "s@PK01@$(cat /etc/wireguard/keys/client1.pub)@" /etc/wireguard/wg0.conf
 sed -i "s@PK02@$(cat /etc/wireguard/keys/client2.pub)@" /etc/wireguard/wg0.conf
-sed -i "s@PK03@$(cat /etc/wireguard/keys/client3.pub)@" /etc/wireguard/wg0.conf
-sed -i "s@PK04@$(cat /etc/wireguard/keys/client4.pub)@" /etc/wireguard/wg0.conf
-sed -i "s@PK05@$(cat /etc/wireguard/keys/client5.pub)@" /etc/wireguard/wg0.conf
 chmod 600 /etc/wireguard/wg0.conf
 
 ### -
@@ -207,48 +164,146 @@ sed -i "s@SK01@$(cat /etc/wireguard/keys/server0.pub)@" /etc/wireguard/client2.c
 sed -i "s@IP01@$(hostname -I | awk '{print $1}')@" /etc/wireguard/client2.conf
 chmod 600 /etc/wireguard/client2.conf
 
-echo "[Interface]
-Address = 10.8.0.13/32
-Address = fd42:42:42:42::13/128
-PrivateKey = CK03
-DNS = 10.8.0.1, fd42:42:42:42::1
-[Peer]
-Endpoint = IP01:$wg0port
-PublicKey = SK01
-AllowedIPs = 0.0.0.0/0, ::/0
-" > /etc/wireguard/client3.conf
-sed -i "s@CK03@$(cat /etc/wireguard/keys/client3)@" /etc/wireguard/client3.conf
-sed -i "s@SK01@$(cat /etc/wireguard/keys/server0.pub)@" /etc/wireguard/client3.conf
-sed -i "s@IP01@$(hostname -I | awk '{print $1}')@" /etc/wireguard/client3.conf
-chmod 600 /etc/wireguard/client3.conf
 
-echo "[Interface]
-Address = 10.8.0.14/32
-Address = fd42:42:42:42::14/128
-PrivateKey = CK04
-DNS = 10.8.0.1, fd42:42:42:42::1
-[Peer]
-Endpoint = IP01:$wg0port
-PublicKey = SK01
-AllowedIPs = 0.0.0.0/0, ::/0
-" > /etc/wireguard/client4.conf
-sed -i "s@CK04@$(cat /etc/wireguard/keys/client4)@" /etc/wireguard/client4.conf
-sed -i "s@SK01@$(cat /etc/wireguard/keys/server0.pub)@" /etc/wireguard/client4.conf
-sed -i "s@IP01@$(hostname -I | awk '{print $1}')@" /etc/wireguard/client4.conf
-chmod 600 /etc/wireguard/client4.conf
+apt install mariadb-server 
+/usr/sbin/service mysql stop
+###configure MariaDB
 
-echo "[Interface]
-Address = 10.8.0.15/32
-Address = fd42:42:42:42::15/128
-PrivateKey = CK05
-DNS = 10.8.0.1, fd42:42:42:42::1
-[Peer]
-Endpoint = IP01:$wg0port
-PublicKey = SK01
-AllowedIPs = 0.0.0.0/0, ::/0
-" > /etc/wireguard/client5.conf
-sed -i "s@CK05@$(cat /etc/wireguard/keys/client5)@" /etc/wireguard/client5.conf
-sed -i "s@SK01@$(cat /etc/wireguard/keys/server0.pub)@" /etc/wireguard/client5.conf
-sed -i "s@IP01@$(hostname -I | awk '{print $1}')@" /etc/wireguard/client5.conf
-chmod 600 /etc/wireguard/client5.conf
+### MariaDB Data-at-Rest Encryption
+mkdir -p /etc/mysql/encryption
+for i in {1..4}; do openssl rand -hex 32 >> /etc/mysql/encryption/keyfile;  done;
+openssl rand -hex 128 > /etc/mysql/encryption/keyfile.key
+openssl enc -aes-256-cbc -md sha1 -pass file:/etc/mysql/encryption/keyfile.key -in /etc/mysql/encryption/keyfile -out /etc/mysql/encryption/keyfile.enc
+cd
 
+### MariaDB Data-in-Transit Encryption
+#mkdir -p /etc/mysql/certs
+#openssl genrsa 2048 > ca-key.pem
+#openssl req -new -x509 -nodes -days 365000 -key ca-key.pem -out ca-cert.pem
+#openssl req -newkey rsa:2048 -nodes -keyout server-key.pem -out server-req.pem
+#openssl rsa -in server-key.pem -out server-key.pem
+#openssl x509 -req -in server-req.pem -days 365000 -CA ca-cert.pem -CAkey ca-key.pem -set_serial 01 -out server-cert.pem
+#openssl req -newkey rsa:2048 -nodes -keyout client-key.pem -out client-req.pem
+#openssl rsa -in client-key.pem -out client-key.pem
+#openssl x509 -req -in client-req.pem -CA ca-cert.pem -CAkey ca-key.pem -set_serial 01 -out client-cert.pem
+#chown mysql.mysql /etc/mysql/certs/
+
+
+
+mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
+echo "[client]
+default-character-set = utf8mb4
+port = 3306
+[mysqld_safe]
+log_error=/var/log/mysql/mysql_error.log
+nice = 0
+socket = /var/run/mysqld/mysqld.sock
+
+[mysqld]
+
+###### DATABASE ENCRYPTION #######
+plugin_load_add = file_key_management
+file_key_management_filename = /etc/mysql/encryption/keyfile.enc
+file_key_management_filekey = FILE:/etc/mysql/encryption/keyfile.key
+file_key_management_encryption_algorithm = aes_cbc
+encrypt_binlog = 1
+encrypt-tmp-disk-tables = 1
+encrypt-tmp-files = 1
+
+innodb_encrypt_tables = ON
+innodb_encrypt_log = ON
+innodb_encryption_threads = 4
+innodb_encryption_rotate_key_age = 0 
+
+aria_encrypt_tables = ON
+
+###### Transit ENCRYPTION #######
+#ssl_ca=/etc/mysql/certs/ca-cert.pem
+#ssl_cert=/etc/mysql/certs/server-cert.pem
+#ssl_key=/etc/mysql/certs/server-key.pem
+
+
+basedir = /usr
+bind-address = 10.8.0.1
+binlog_format = ROW
+bulk_insert_buffer_size = 16M
+character-set-server = utf8mb4
+collation-server = utf8mb4_general_ci
+concurrent_insert = 2
+connect_timeout = 5
+datadir = /var/lib/mysql
+default_storage_engine = InnoDB
+expire_logs_days = 10
+general_log_file = /var/log/mysql/mysql.log
+general_log = 0
+innodb_buffer_pool_size = 1024M
+innodb_buffer_pool_instances = 1
+innodb_flush_log_at_trx_commit = 2
+innodb_log_buffer_size = 32M
+innodb_max_dirty_pages_pct = 90
+innodb_file_per_table = 1
+innodb_open_files = 400
+innodb_io_capacity = 4000
+innodb_flush_method = O_DIRECT
+key_buffer_size = 128M
+lc_messages_dir = /usr/share/mysql
+lc_messages = en_US
+log_bin = /var/log/mysql/mariadb-bin
+log_bin_index = /var/log/mysql/mariadb-bin.index
+log_error = /var/log/mysql/mysql_error.log
+log_slow_verbosity = query_plan
+log_warnings = 2
+long_query_time = 1
+max_allowed_packet = 16M
+max_binlog_size = 100M
+max_connections = 200
+max_heap_table_size = 64M
+myisam_recover_options = BACKUP
+myisam_sort_buffer_size = 512M
+port = 3306
+pid-file = /var/run/mysqld/mysqld.pid
+query_cache_limit = 2M
+query_cache_size = 64M
+query_cache_type = 1
+query_cache_min_res_unit = 2k
+read_buffer_size = 2M
+read_rnd_buffer_size = 1M
+skip-external-locking
+skip-name-resolve
+slow_query_log_file = /var/log/mysql/mariadb-slow.log
+slow-query-log = 1
+socket = /var/run/mysqld/mysqld.sock
+sort_buffer_size = 4M
+table_open_cache = 400
+thread_cache_size = 128
+tmp_table_size = 64M
+tmpdir = /tmp
+transaction_isolation = READ-COMMITTED
+user = mysql
+wait_timeout = 600
+
+[mysqldump]
+max_allowed_packet = 16M
+quick
+quote-names
+
+[isamchk]
+key_buffer = 16M
+" > /etc/mysql/my.cnf
+/usr/sbin/service mysql restart
+clear
+echo ""
+echo " Your database server will now be hardened - just follow the instructions."
+echo " Keep in mind: your MariaDB root password is still NOT set!"
+echo ""
+mysql_secure_installation
+
+
+
+
+
+
+
+wget -O  add_database.sh https://raw.githubusercontent.com/zzzkeil/Wireguard-MariaDB-Server/main/add_database.sh
+chmod +x add_database.sh
+echo " To add a database run ./add_database.sh "
