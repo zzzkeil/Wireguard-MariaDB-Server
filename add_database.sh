@@ -36,3 +36,7 @@ CREATE USER $databaseuser@localhost identified by '$databaseuserpasswd';
 GRANT ALL PRIVILEGES on $databasename.* to $databaseuser@localhost;
 FLUSH privileges;
 EOF
+
+#GRANT ALL PRIVILEGES on $databasename.* to $databaseuser@localhost REQUIRE SSL;
+
+
