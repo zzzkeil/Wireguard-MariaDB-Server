@@ -165,11 +165,18 @@ apt install mariadb-server
 ###configure MariaDB
 
 ### MariaDB Data-at-Rest Encryption
-mkdir -p /etc/mysql/encryption
-for i in {1..4}; do openssl rand -hex 32 >> /etc/mysql/encryption/keyfile;  done;
-openssl rand -hex 128 > /etc/mysql/encryption/keyfile.key
-openssl enc -aes-256-cbc -md sha1 -pass file:/etc/mysql/encryption/keyfile.key -in /etc/mysql/encryption/keyfile -out /etc/mysql/encryption/keyfile.enc
-cd
+mkdir /etc/mysql/keys
+echo -n "1;"$openssl rand hex 32 > /etc/mysql/keys/enc_keys"
+echo -n "2;"$openssl rand hex 32 > /etc/mysql/keys/enc_keys"
+echo -n "3;"$openssl rand hex 32 > /etc/mysql/keys/enc_keys"
+openssl rand -hex 192> /etc/mysql/keys/enc_paswd.key
+openssl enc -aes-256-cbc -md sha1 -pass file:/etc/mysql/keys/enc_paswd.key -in /etc/mysql/keys/enc_key.txt -out /etc/mysql/keys/enc_key.enc && sudo rm /etc/mysql/keys/enc_key.txt
+
+chown -R mysql:root /etc/mysql/keys
+chmod 500 /etc/mysql/keys/
+chown mysql:root /etc/mysql/keys/enc_paswd.key /etc/mysql/keys/enc_key.enc
+chmod 600 /etc/mysql/keys/enc_paswd.key /etc/mysql/keys/enc_key.enc
+
 
 ### MariaDB Data-in-Transit Encryption
 #mkdir -p /etc/mysql/certs
@@ -184,6 +191,29 @@ cd
 #chown mysql.mysql /etc/mysql/certs/
 
 
+echo "
+[sqld]
+
+#File Key Management Plugin
+plugin_load_add=file_key_management
+file_key_management = ON file_key_management_encryption_algorithm=aes_cbc file_key_management_filename = /etc/mysql/keys/enc_keys.enc
+file_key_management_filekey = /etc/mysql/keys/enc_paswd.key
+
+# InnoDB/XtraDB Encryption Setup
+innodb_default_encryption_key_id = 1
+innodb_encrypt_tables = ON
+innodb_encrypt_log = ON
+innodb_encryption_threads = 4
+
+# Aria Encryption Setup
+aria_encrypt_tables = ON
+
+# Temp & Log Encryption
+encrypt-tmp-disk-tables = 1
+encrypt-tmp-files = 1
+encrypt_binlog = ON
+" > /etc/mysql/my_enc.cnf
+
 
 mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
 echo "[client]
@@ -193,31 +223,7 @@ port = 3306
 log_error=/var/log/mysql/mysql_error.log
 nice = 0
 socket = /var/run/mysqld/mysqld.sock
-
 [mysqld]
-
-###### DATABASE ENCRYPTION #######
-plugin_load_add = file_key_management
-file_key_management_filename = /etc/mysql/encryption/keyfile.enc
-file_key_management_filekey = FILE:/etc/mysql/encryption/keyfile.key
-file_key_management_encryption_algorithm = aes_cbc
-encrypt_binlog = 1
-encrypt-tmp-disk-tables = 1
-encrypt-tmp-files = 1
-
-innodb_encrypt_tables = ON
-innodb_encrypt_log = ON
-innodb_encryption_threads = 4
-innodb_encryption_rotate_key_age = 0 
-
-aria_encrypt_tables = ON
-
-###### Transit ENCRYPTION #######
-#ssl_ca=/etc/mysql/certs/ca-cert.pem
-#ssl_cert=/etc/mysql/certs/server-cert.pem
-#ssl_key=/etc/mysql/certs/server-key.pem
-
-
 basedir = /usr
 bind-address = 10.8.0.1
 binlog_format = ROW
