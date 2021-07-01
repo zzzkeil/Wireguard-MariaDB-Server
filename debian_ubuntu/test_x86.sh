@@ -166,9 +166,10 @@ apt install mariadb-server
 
 ### MariaDB Data-at-Rest Encryption
 mkdir /etc/mysql/keys
-echo -n "1;"$openssl rand hex 32 > /etc/mysql/keys/enc_keys"
-echo -n "2;"$openssl rand hex 32 > /etc/mysql/keys/enc_keys"
-echo -n "3;"$openssl rand hex 32 > /etc/mysql/keys/enc_keys"
+echo  "1;"$(openssl rand -hex 32) > /etc/mysql/keys/enc_keys
+echo  "2;"$(openssl rand -hex 32) >> /etc/mysql/keys/enc_keys
+echo  "3;"$(openssl rand -hex 32) >> /etc/mysql/keys/enc_keys
+echo  "4;"$(openssl rand -hex 32) >> /etc/mysql/keys/enc_keys
 openssl rand -hex 192> /etc/mysql/keys/enc_paswd.key
 openssl enc -aes-256-cbc -md sha1 -pass file:/etc/mysql/keys/enc_paswd.key -in /etc/mysql/keys/enc_key.txt -out /etc/mysql/keys/enc_key.enc && sudo rm /etc/mysql/keys/enc_key.txt
 
