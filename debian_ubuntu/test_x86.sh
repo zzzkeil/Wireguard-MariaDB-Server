@@ -170,8 +170,8 @@ echo  "1;"$(openssl rand -hex 32) > /etc/mysql/keys/enc_keys
 echo  "2;"$(openssl rand -hex 32) >> /etc/mysql/keys/enc_keys
 echo  "3;"$(openssl rand -hex 32) >> /etc/mysql/keys/enc_keys
 echo  "4;"$(openssl rand -hex 32) >> /etc/mysql/keys/enc_keys
-openssl rand -hex 192> /etc/mysql/keys/enc_paswd.key
-openssl enc -aes-256-cbc -md sha1 -pass file:/etc/mysql/keys/enc_paswd.key -in /etc/mysql/keys/enc_key.txt -out /etc/mysql/keys/enc_key.enc && sudo rm /etc/mysql/keys/enc_key.txt
+openssl rand -hex 256 > /etc/mysql/keys/enc_paswd.key
+openssl enc -aes-256-cbc -md sha1 -pbkdf2 -pass file:/etc/mysql/keys/enc_paswd.key -in /etc/mysql/keys/enc_keys -out /etc/mysql/keys/enc_key.enc
 
 chown -R mysql:root /etc/mysql/keys
 chmod 500 /etc/mysql/keys/
