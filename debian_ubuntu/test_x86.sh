@@ -308,4 +308,13 @@ mysql_secure_installation
 
 wget -O  add_database.sh https://raw.githubusercontent.com/zzzkeil/Wireguard-MariaDB-Server/main/add_database.sh
 chmod +x add_database.sh
+curl -o add_client.sh https://raw.githubusercontent.com/zzzkeil/Wireguard-DNScrypt-VPN-Server/master/tools/add_client.sh
+curl -o remove_client.sh https://raw.githubusercontent.com/zzzkeil/Wireguard-DNScrypt-VPN-Server/master/tools/remove_client.sh
+chmod +x add_client.sh
+chmod +x remove_client.sh
+
+echo " to add or remove clients run ./add_client.sh or remove_client.sh"
 echo " To add a database run ./add_database.sh "
+
+systemctl enable wg-quick@wg0.service
+systemctl start wg-quick@wg0.service
