@@ -33,9 +33,10 @@ databaseuserpasswd : $databaseuserpasswd
 mysql -uroot <<EOF
 CREATE DATABASE $databasename CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 CREATE USER $databaseuser@localhost identified by '$databaseuserpasswd';
-GRANT ALL PRIVILEGES on $databasename.* to $databaseuser@localhost;
+GRANT ALL PRIVILEGES on $databasename.* to $databaseuser identified by '$databaseuserpasswd';
 FLUSH privileges;
 EOF
+
 
 #GRANT ALL PRIVILEGES on $databasename.* to $databaseuser@localhost REQUIRE SSL;
 
