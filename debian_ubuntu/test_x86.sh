@@ -88,8 +88,9 @@ apt install wireguard-dkms wireguard-tools -y
 #
 ### setup ufw 
 ufw allow $wg0port/udp
-ufw allow in on wg0 from 10.0.0.11 to any port 3306 proto tcp
-ufw allow in on wg0 from 10.0.0.12 to any port 3306 proto tcp
+ufw allow in on wg0 to any
+#ufw allow in on wg0 from 10.0.0.11 to any port  proto tcp
+#ufw allow in on wg0 from 10.0.0.12 to any port 3306 proto tcp
 
 
 #
@@ -165,18 +166,18 @@ apt install mariadb-server
 ###configure MariaDB
 
 ### MariaDB Data-at-Rest Encryption
-mkdir /etc/mysql/keys
-echo  "1;"$(openssl rand -hex 32) > /etc/mysql/keys/enc_keys
-echo  "2;"$(openssl rand -hex 32) >> /etc/mysql/keys/enc_keys
-echo  "3;"$(openssl rand -hex 32) >> /etc/mysql/keys/enc_keys
-echo  "4;"$(openssl rand -hex 32) >> /etc/mysql/keys/enc_keys
-openssl rand -hex 256 > /etc/mysql/keys/enc_paswd.key
-openssl enc -aes-256-cbc -md sha1 -pbkdf2 -pass file:/etc/mysql/keys/enc_paswd.key -in /etc/mysql/keys/enc_keys -out /etc/mysql/keys/enc_key.enc
+#mkdir /etc/mysql/keys
+#echo  "1;"$(openssl rand -hex 32) > /etc/mysql/keys/enc_keys
+#echo  "2;"$(openssl rand -hex 32) >> /etc/mysql/keys/enc_keys
+#echo  "3;"$(openssl rand -hex 32) >> /etc/mysql/keys/enc_keys
+#echo  "4;"$(openssl rand -hex 32) >> /etc/mysql/keys/enc_keys
+#openssl rand -hex 256 > /etc/mysql/keys/enc_paswd.key
+#openssl enc -aes-256-cbc -md sha1 -pbkdf2 -pass file:/etc/mysql/keys/enc_paswd.key -in /etc/mysql/keys/enc_keys -out /etc/mysql/keys/enc_key.enc
 
-chown -R mysql:root /etc/mysql/keys
-chmod 500 /etc/mysql/keys/
-chown mysql:root /etc/mysql/keys/enc_paswd.key /etc/mysql/keys/enc_key.enc
-chmod 600 /etc/mysql/keys/enc_paswd.key /etc/mysql/keys/enc_key.enc
+#chown -R mysql:root /etc/mysql/keys
+#chmod 500 /etc/mysql/keys/
+#chown mysql:root /etc/mysql/keys/enc_paswd.key /etc/mysql/keys/enc_key.enc
+#chmod 600 /etc/mysql/keys/enc_paswd.key /etc/mysql/keys/enc_key.enc
 
 
 ### MariaDB Data-in-Transit Encryption
@@ -192,28 +193,28 @@ chmod 600 /etc/mysql/keys/enc_paswd.key /etc/mysql/keys/enc_key.enc
 #chown mysql.mysql /etc/mysql/certs/
 
 
-echo "
-[sqld]
+#echo "
+#[sqld]
 
 #File Key Management Plugin
-plugin_load_add=file_key_management
-file_key_management = ON file_key_management_encryption_algorithm=aes_cbc file_key_management_filename = /etc/mysql/keys/enc_keys.enc
-file_key_management_filekey = /etc/mysql/keys/enc_paswd.key
+#plugin_load_add=file_key_management
+#file_key_management = ON file_key_management_encryption_algorithm=aes_cbc file_key_management_filename = /etc/mysql/keys/enc_keys.enc
+#file_key_management_filekey = /etc/mysql/keys/enc_paswd.key
 
 # InnoDB/XtraDB Encryption Setup
-innodb_default_encryption_key_id = 1
-innodb_encrypt_tables = ON
-innodb_encrypt_log = ON
-innodb_encryption_threads = 4
+#innodb_default_encryption_key_id = 1
+#innodb_encrypt_tables = ON
+#innodb_encrypt_log = ON
+#innodb_encryption_threads = 4
 
 # Aria Encryption Setup
-aria_encrypt_tables = ON
+#aria_encrypt_tables = ON
 
 # Temp & Log Encryption
-encrypt-tmp-disk-tables = 1
-encrypt-tmp-files = 1
-encrypt_binlog = ON
-" > /etc/mysql/my_enc.cnf
+#encrypt-tmp-disk-tables = 1
+#encrypt-tmp-files = 1
+#encrypt_binlog = ON
+#" > /etc/mysql/my_enc.cnf
 
 
 mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
@@ -226,7 +227,7 @@ nice = 0
 socket = /var/run/mysqld/mysqld.sock
 [mysqld]
 basedir = /usr
-bind-address = 10.8.0.1
+bind-address = 0.0.0.0
 binlog_format = ROW
 bulk_insert_buffer_size = 16M
 character-set-server = utf8mb4
