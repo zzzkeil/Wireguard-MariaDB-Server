@@ -185,16 +185,17 @@ chmod 600 /etc/mysql/keys/enc_paswd.key /etc/mysql/keys/enc_key.enc
 
 
 ### MariaDB Data-in-Transit Encryption
-#mkdir -p /etc/mysql/certs
-#openssl genrsa 2048 > ca-key.pem
-#openssl req -new -x509 -nodes -days 365000 -key ca-key.pem -out ca-cert.pem
-#openssl req -newkey rsa:2048 -nodes -keyout server-key.pem -out server-req.pem
-#openssl rsa -in server-key.pem -out server-key.pem
-#openssl x509 -req -in server-req.pem -days 365000 -CA ca-cert.pem -CAkey ca-key.pem -set_serial 01 -out server-cert.pem
-#openssl req -newkey rsa:2048 -nodes -keyout client-key.pem -out client-req.pem
-#openssl rsa -in client-key.pem -out client-key.pem
-#openssl x509 -req -in client-req.pem -CA ca-cert.pem -CAkey ca-key.pem -set_serial 01 -out client-cert.pem
-#chown mysql.mysql /etc/mysql/certs/
+mkdir /etc/mysql/certs
+openssl genrsa 4096 > /etc/mysql/certs/ca-key.pem
+openssl req -new -x509 -nodes -days 365000 -key /etc/mysql/certs/ca-key.pem -out /etc/mysql/certs/ca-cert.pem
+openssl req -newkey rsa:4096 -nodes -keyout /etc/mysql/certs/server-key.pem -out /etc/mysql/certs/server-req.pem
+openssl rsa -in /etc/mysql/certs/server-key.pem -out /etc/mysql/certs/server-key.pem
+openssl x509 -req -in /etc/mysql/certs/server-req.pem -days 365000 -CA /etc/mysql/certs/ca-cert.pem -CAkey /etc/mysql/certs/ca-key.pem -set_serial 01 -out /etc/mysql/certs/server-cert.pem
+
+openssl req -newkey rsa:4096 -nodes -keyout /etc/mysql/certs/client-key.pem -out /etc/mysql/certs/client-req.pem
+openssl rsa -in /etc/mysql/certs/client-key.pem -out /etc/mysql/certs/client-key.pem
+openssl x509 -req -in /etc/mysql/certs/client-req.pem -CA /etc/mysql/certs/ca-cert.pem -CAkey /etc/mysql/certs/ca-key.pem -set_serial 01 -out /etc/mysql/certs/client-cert.pem
+chown mysql.mysql /etc/mysql/certs/
 
 
 echo "
@@ -219,6 +220,18 @@ encrypt-tmp-disk-tables = 1
 encrypt-tmp-files = 1
 encrypt_binlog = ON
 " > /etc/mysql/my_enc.cnf
+
+
+echo "
+[mariadb]
+ssl-ca=/etc/mysql/certs/ca-cert.pem
+ssl-cert=/etc/mysql/certs/server-cert.pem
+ssl-key=//etc/mysql/certs/server-key.pem
+tls_version = TLSv1.3
+" > /etc/mysql/my_tls.cnf
+
+
+
 
 
 mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
