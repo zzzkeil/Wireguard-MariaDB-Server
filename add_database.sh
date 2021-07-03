@@ -20,10 +20,10 @@ fi
 randomkey1=$(date +%s | cut -c 3-)
 read -p "sql databasename: " -e -i db$randomkey1 databasename
 read -p "sql databaseuser: " -e -i dbuser$randomkey1 databaseuser
-randomkey2=$(</dev/urandom tr -dc 'A-Za-z0-9.:_' | head -c 12  ; echo)
+randomkey2=$(</dev/urandom tr -dc 'A-Za-z0-9.:_' | head -c 32  ; echo)
 read -p "sql databaseuserpasswd: " -e -i $randomkey2 databaseuserpasswd
 echo "
-Added database without new domain
+Database
 databasename : $databasename
 databaseuser : $databaseuser
 databaseuserpasswd : $databaseuserpasswd
@@ -33,11 +33,10 @@ databaseuserpasswd : $databaseuserpasswd
 mysql -uroot <<EOF
 CREATE DATABASE $databasename CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 CREATE USER $databaseuser@localhost identified by '$databaseuserpasswd';
-GRANT ALL PRIVILEGES on $databasename.* to $databaseuser identified by '$databaseuserpasswd';
+#GRANT ALL PRIVILEGES on $databasename.* to $databaseuser identified by '$databaseuserpasswd';
+GRANT ALL PRIVILEGES on $databasename.* to $databaseuser identified by '$databaseuserpasswd' REQUIRE SSL;
 FLUSH privileges;
 EOF
 
-
-#GRANT ALL PRIVILEGES on $databasename.* to $databaseuser@localhost REQUIRE SSL;
 
 
