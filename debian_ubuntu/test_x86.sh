@@ -236,6 +236,7 @@ tls_version = TLSv1.3
 
 mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
 echo "
+[mysqld]
 bind-address = 0.0.0.0
 port = $dbport
 
