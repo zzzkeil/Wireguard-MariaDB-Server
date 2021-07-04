@@ -92,9 +92,7 @@ apt install wireguard-dkms wireguard-tools -y
 #
 ### setup ufw 
 ufw allow $wg0port/udp
-ufw allow in on wg0 to any
-#ufw allow in on wg0 from 10.0.0.11 to any port  proto tcp
-#ufw allow in on wg0 from 10.0.0.12 to any port 3306 proto tcp
+ufw allow in on wg0 to any port $dbport proto tcp
 
 
 #
